@@ -1,0 +1,49 @@
+---
+title: "Kontur Population"
+author: "Orhan Aktas"
+date: '2022-11-18'
+output:   
+    html_document:
+      df_print: !expr knitr::kable
+      toc: yes
+      number_sections: yes
+      toc_depth: 2
+---
+
+```{r setup, include=FALSE,echo=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  class.source = "bg-warning text-warning"
+)
+```
+
+#### Required Libraries {.unlisted .unnumbered}
+
+```{r libraries, message=FALSE, warning=FALSE}
+library(osrm)
+library(sf)
+library(tidyverse)
+library(leaflet)
+```
+
+# Introduction
+
+It would be nice to extract only the hexagons located within the boundaries of Istanbul.
+
+My plan is to
+
+1.  create a sqlite database and import the ".gpkg" file.
+2.  find out the coordinates of an adequate rectangle that covers Istanbul.
+3.  select the hexagons that stays within this rectangle and import that data into R.
+
+# Import data
+
+this chunk is not working. 
+```{r eval=FALSE}
+library(sf)
+
+nc = st_read("data/kontur_population.gpkg", query="select * from \"kontur_population\" limit 0")
+
+```
