@@ -43,14 +43,14 @@ My plan is to
 population data for turkey
 ```{r eval=FALSE}
 
-nc = st_read("data/kontur_pop_tr.gpkg")
+nc = read_sf("data/kontur_pop_tr.gpkg")
 
 ```
 
 boundries for turkey
 ```{r}
 
-boundries_tr = st_read("data/kontur_boundaries_TR_20220407.gpkg")
+boundries_tr <- read_sf("data/kontur_boundaries_TR_20220407.gpkg")
 
 
 ```
@@ -100,4 +100,36 @@ https://postgis.net/docs/T_Contains.html
 https://github.com/gkaramanis/30DayMapChallenge/blob/main/2022/21-kontur-1000/21-kontur-1000.R
 
 
+preparation
+```{r}
+crs_string <- '+proj=longlat +datum=WGS84'
+
+hex_ist <- nc |> 
+  st_transform(4326) |> 
+  st_intersection(boundry_ist  |> st_transform(4326)) |> 
+  st_transform(crs = crs_string)
+```
+
+map
+```{r}
+ggplot() +
+  geom_sf(data = hex_ist , aes(color = population), linewidth = 0.1) +
+  theme(
+    legend.position = "none"
+  )
+```
+leaflet
+```{r}
+
+# Create a continuous palette function
+pal <- colorNumeric(
+  palette = "Blues",
+  domain = hex_ist$population)
+
+# Apply the function to provide RGB colors to addPolygons
+leaflet(hex_ist) %>% 
+     addProviderTiles("CartoDB.Positron") %>% 
+     addPolygons(stroke = TRUE, weight=0.4,smoothFactor = 0.2, fillOpacity = 0.5,
+    color = ~pal(population))
+```
 
