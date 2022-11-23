@@ -40,10 +40,62 @@ My plan is to
 
 # Import data
 
-this chunk is not working. 
+population data for turkey
 ```{r eval=FALSE}
-library(sf)
 
-nc = st_read("data/kontur_population.gpkg", query="select * from \"kontur_population\" limit 0")
+nc = st_read("data/kontur_pop_tr.gpkg")
 
 ```
+
+boundries for turkey
+```{r}
+
+boundries_tr = st_read("data/kontur_boundaries_TR_20220407.gpkg")
+
+
+```
+
+```{r}
+boundries_tr |> filter(admin_level==4)|> st_geometry() |> plot()
+boundries_tr |> filter(admin_level==4)|> select(population) |> plot()
+```
+
+
+boundry for istanbul
+```{r}
+boundry_ist<-boundries_tr |> filter(name_en=="Istanbul")
+
+boundries_tr |> 
+  filter(admin_level==10) |> 
+  st_join(boundry_ist) |> 
+  filter(name_en.y=="Istanbul") |> 
+  select(population.x)|> 
+  plot()
+
+```
+
+join with hexagon data
+
+burayı henüz çözemedim.
+
+crs uyumsuzluğu vardı. sanırım aşağıdaki gibi düzenleniyor.
+https://stackoverflow.com/questions/49141192/st-intersects-errors-for-st-crsx-st-crsy-is-not-true
+
+```{r eval=FALSE}
+# 
+boundry_ist <- st_set_crs(boundry_ist, 3857)
+
+
+
+```
+
+aşağıdaki linkleri kullanıyorum
+
+https://data.humdata.org/dataset/kontur-boundaries-turkey
+http://rstudio-pubs-static.s3.amazonaws.com/417601_236011cd7d4c40f1a980436f41873f6d.html
+https://r-spatial.github.io/sf/reference/geos_binary_pred.html
+https://postgis.net/docs/T_Contains.html
+
+https://github.com/gkaramanis/30DayMapChallenge/blob/main/2022/21-kontur-1000/21-kontur-1000.R
+
+
