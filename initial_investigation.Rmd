@@ -1,7 +1,7 @@
 ---
 title: "Kontur Population"
 author: "Orhan Aktas"
-date: '2022-11-18'
+date: '2022-11-24'
 output:   
     html_document:
       df_print: !expr knitr::kable
@@ -32,22 +32,20 @@ library(leaflet)
 
 It would be nice to extract only the hexagons located within the boundaries of Istanbul.
 
-My plan is to
-
-1.  create a sqlite database and import the ".gpkg" file.
-2.  find out the coordinates of an adequate rectangle that covers Istanbul.
-3.  select the hexagons that stays within this rectangle and import that data into R.
 
 # Import data
 
-population data for turkey
+## population data for turkey
+This data was previously downloaded from https://data.humdata.org/dataset/kontur-population-turkiye.I just read this file initially. After selecting the hexagons for Istanbul, I don't read it.
 ```{r eval=FALSE}
 
 nc = read_sf("data/kontur_pop_tr.gpkg")
 
 ```
 
-boundries for turkey
+## boundries for turkey
+
+This data was previously downloaded from https://data.humdata.org/dataset/kontur-boundaries-turkey.
 ```{r}
 
 boundries_tr <- read_sf("data/kontur_boundaries_TR_20220407.gpkg")
@@ -55,13 +53,14 @@ boundries_tr <- read_sf("data/kontur_boundaries_TR_20220407.gpkg")
 
 ```
 
+map
 ```{r}
 boundries_tr |> filter(admin_level==4)|> st_geometry() |> plot()
 boundries_tr |> filter(admin_level==4)|> select(population) |> plot()
 ```
 
 
-boundry for istanbul
+## boundry for istanbul
 ```{r}
 boundry_ist<-boundries_tr |> filter(name_en=="Istanbul")
 
@@ -74,51 +73,51 @@ boundries_tr |>
 
 ```
 
-join with hexagon data
 
-burayı henüz çözemedim.
 
-crs uyumsuzluğu vardı. sanırım aşağıdaki gibi düzenleniyor.
-https://stackoverflow.com/questions/49141192/st-intersects-errors-for-st-crsx-st-crsy-is-not-true
 
+
+
+
+
+
+
+prepare hexagons for Istanbul and write to a separate file. This was done initially.
 ```{r eval=FALSE}
-
-boundry_ist <- st_set_crs(boundry_ist, 3857)
-
-
-
-```
-
-aşağıdaki linkleri kullanıyorum
-
-
-https://data.humdata.org/dataset/kontur-boundaries-turkey
-http://rstudio-pubs-static.s3.amazonaws.com/417601_236011cd7d4c40f1a980436f41873f6d.html
-https://r-spatial.github.io/sf/reference/geos_binary_pred.html
-https://postgis.net/docs/T_Contains.html
-
-https://github.com/gkaramanis/30DayMapChallenge/blob/main/2022/21-kontur-1000/21-kontur-1000.R
-
-
-preparation
-```{r}
 crs_string <- '+proj=longlat +datum=WGS84'
 
 hex_ist <- nc |> 
   st_transform(4326) |> 
   st_intersection(boundry_ist  |> st_transform(4326)) |> 
   st_transform(crs = crs_string)
+
+write_rds(hex_ist.rds,"data/hex_ist.rds")
 ```
 
-map
+read previously prepared file for Istanbul
+```{r}
+hex_ist <- read_rds("data/hex_ist.rds")
+```
+
+
+map with ggplot
 ```{r}
 ggplot() +
-  geom_sf(data = hex_ist , aes(color = population), linewidth = 0.1) +
+  geom_sf(data = hex_ist , aes(fill = population),size=0.001) +
+  theme(
+    legend.position = "none"
+  )+
+  scale_color_distiller(palette = "Spectral") +
+  labs(
+    caption = "Population Density for 400m H3 Hexagons\nSource: Kontur Population\nGraphic: Orhan Aktaş"
+  ) +
+  theme_void() +
   theme(
     legend.position = "none"
   )
 ```
-leaflet
+
+leaflet example for examining grids
 ```{r}
 
 # Create a continuous palette function
@@ -128,8 +127,22 @@ pal <- colorNumeric(
 
 # Apply the function to provide RGB colors to addPolygons
 leaflet(hex_ist) %>% 
-     addProviderTiles("CartoDB.Positron") %>% 
-     addPolygons(stroke = TRUE, weight=0.4,smoothFactor = 0.2, fillOpacity = 0.5,
-    color = ~pal(population))
+     addProviderTiles("CartoDB.PositronNoLabels") %>% 
+     addPolygons(stroke = TRUE, weight=0.4,smoothFactor = 0.2, fillOpacity = 0,
+    color ="black" )
 ```
 
+leaflet example for examining populations
+```{r}
+
+# Create a continuous palette function
+pal <- colorNumeric(
+  palette = "Blues",
+  domain = hex_ist$population)
+
+# Apply the function to provide RGB colors to addPolygons
+leaflet(hex_ist) %>% 
+     addProviderTiles("CartoDB.PositronNoLabels") %>% 
+     addPolygons(stroke = TRUE, weight=0.1,smoothFactor = 0.2, fillOpacity = 0.5,
+    color ="black" ,fillColor =~pal(population) )
+```
