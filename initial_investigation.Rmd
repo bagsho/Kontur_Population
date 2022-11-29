@@ -43,6 +43,73 @@ nc = read_sf("data/kontur_pop_tr.gpkg")
 
 ```
 
+## gis
+
+districts
+```{r}
+districts <-  read_sf("data/gis/districts/Export_Output_2.shp")
+districts |> st_drop_geometry()|> select(name=ILCE_ADI,population=NUFUS) |> head()
+districts |> st_drop_geometry()|>summarise(total_pop=sum(NUFUS))
+districts |> select(NUFUS) |> plot()
+```
+
+neighbourhoods
+```{r}
+neighbourhoods <-  read_sf("data/gis/neighbourhoods/Export_Output.shp")
+neighbourhoods |> st_drop_geometry()|> select(name=MAHALLE__1,population=NUFUS)|> head()
+neighbourhoods |> st_drop_geometry()|>summarise(total_pop=sum(NUFUS))
+neighbourhoods |> select(NUFUS) |> plot()
+```
+
+
+
+Bunu tam anlayamadım.
+```{r}
+
+nufus <-  read_sf("data/gis/nufus/Export_Output.shp")
+
+```
+
+what is oran?
+It might be a percentage between different areas. There are two different area variables. Lets try to calculate same values again and map the old and the new column. If they are the same, then we can understand its meaning.
+```{r}
+nufus |> 
+  select(AREA,Shape_Ar_1,oran) |> 
+  st_drop_geometry() |> 
+  mutate(new_oran=Shape_Ar_1*10^12/AREA) |> 
+  ggplot(aes(x=oran,y=new_oran))+
+    geom_point()
+```
+
+
+
+stations of railway and metrobus
+```{r}
+stations <-  read_sf("data/gis/isbak/ttb.shp")
+stations |> head()
+stations |> names()
+stations |> st_geometry() |> plot()
+```
+
+
+
+catchment areas by distance
+```{r}
+ttb2 <-  read_sf("data/gis/ttb/ttb_3duzey.shp")
+ttb2 |> head()
+ttb2 |> select(FromBreak) |> plot()
+```
+
+
+
+
+map
+```{r}
+nufus |>   select(Sum_Outp_3)   |> plot()
+# nufus |>  st_geometry() |> plot()
+#boundries_tr |> filter(admin_level==4)|> select(population) |> plot()
+```
+
 ## boundries for turkey
 
 This data was previously downloaded from https://data.humdata.org/dataset/kontur-boundaries-turkey.
