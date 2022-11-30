@@ -45,6 +45,18 @@ nc = read_sf("data/kontur_pop_tr.gpkg")
 
 ## gis
 
+hgm
+```{r}
+hgm_boundary_turkey<-  read_sf("data/gis/hgm_boundary/Ülke_Sınırı.shp")
+hgm_boundary_city<-  read_sf("data/gis/hgm_boundary/İl_Sınırı.shp")
+hgm_boundary_district<-  read_sf("data/gis/hgm_boundary/İlçe_Sınırı.shp")
+hgm_boundary_settlement<-  read_sf("data/gis/hgm_boundary/Yerleşim_Nokta.shp")
+
+
+
+```
+
+
 districts
 ```{r}
 districts <-  read_sf("data/gis/districts/Export_Output_2.shp")
@@ -107,37 +119,42 @@ map
 ```{r}
 nufus |>   select(Sum_Outp_3)   |> plot()
 # nufus |>  st_geometry() |> plot()
-#boundries_tr |> filter(admin_level==4)|> select(population) |> plot()
+#boundaries_tr |> filter(admin_level==4)|> select(population) |> plot()
 ```
 
-## boundries for turkey
+## boundaries for turkey
 
-This data was previously downloaded from https://data.humdata.org/dataset/kontur-boundaries-turkey.
+This data includes aggregated population values by administrative divisions. It was previously downloaded from https://data.humdata.org/dataset/kontur-boundaries-turkey.
+
+import data
 ```{r}
-
-boundries_tr <- read_sf("data/kontur_boundaries_TR_20220407.gpkg")
-
-
+boundaries_tr <- read_sf("data/kontur_boundaries_TR_20220407.gpkg")
 ```
 
 map
 ```{r}
-boundries_tr |> filter(admin_level==4)|> st_geometry() |> plot()
-boundries_tr |> filter(admin_level==4)|> select(population) |> plot()
+boundaries_tr |> filter(admin_level==4)|> st_geometry() |> plot()
+boundaries_tr |> filter(admin_level==4)|> select(population) |> plot()
 ```
 
 
-## boundry for istanbul
-```{r}
-boundry_ist<-boundries_tr |> filter(name_en=="Istanbul")
+## boundary for istanbul
 
-boundries_tr |> 
+create 
+```{r}
+boundary_ist<-boundaries_tr |> filter(name_en=="Istanbul")
+```
+
+create neighbourhood boundaries for Istanbul
+```{r}
+boundaries_ist<-boundaries_tr |> 
   filter(admin_level==10) |> 
-  st_join(boundry_ist) |> 
-  filter(name_en.y=="Istanbul") |> 
+  st_join(boundary_ist) |> 
+  filter(name_en.y=="Istanbul")
+  
+boundaries_ist |> 
   select(population.x)|> 
   plot()
-
 ```
 
 
@@ -155,7 +172,7 @@ crs_string <- '+proj=longlat +datum=WGS84'
 
 hex_ist <- nc |> 
   st_transform(4326) |> 
-  st_intersection(boundry_ist  |> st_transform(4326)) |> 
+  st_intersection(boundary_ist  |> st_transform(4326)) |> 
   st_transform(crs = crs_string)
 
 write_rds(hex_ist.rds,"data/hex_ist.rds")
@@ -213,3 +230,43 @@ leaflet(hex_ist) %>%
      addPolygons(stroke = TRUE, weight=0.1,smoothFactor = 0.2, fillOpacity = 0.5,
     color ="black" ,fillColor =~pal(population) )
 ```
+
+
+## Comparison with data from IMM (Istanbul Metropolitan Municipality)
+
+join two neighbourhood data
+```{r}
+comparison <-neighbourhoods  |> 
+  st_transform(4326) |> 
+  select(MAHALLE__1,pop_real=NUFUS) |> 
+  st_join(
+    boundaries_ist |> 
+      select(pop_kntr=population.x,mah_kntr=name.x) |> 
+      mutate(mah_kntr = toupper(str_replace(mah_kntr, "Mahallesi", ""))) |> 
+      st_centroid()
+  ) 
+```
+
+take a glance to the table
+```{r}
+comparison |> head(20)
+```
+
+plot neighbourhoods based on two populations separately.
+```{r}
+comparison |> select(pop_real,pop_kntr) |> plot()
+```
+
+lastly, create a scatter chart to compare two population data
+```{r}
+comparison |> 
+  st_drop_geometry() |>
+  mutate(
+    pct_real=pop_real/sum(pop_real)*1000,
+    pct_kntr=pop_kntr/sum(pop_kntr,na.rm = TRUE)*1000
+  ) |> 
+  ggplot(aes(x=pct_real,y=pct_kntr))+
+  geom_point()
+```
+
+I'm afraid these two data sources are not similar. since one was obtained from the municipality, I am concluding that the hexagon data does unfortunately not reflect the real situation.
